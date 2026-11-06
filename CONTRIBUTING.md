@@ -1,64 +1,75 @@
-# 写作与组织约定
+# Contributing
 
-## 原则
+English | [中文](CONTRIBUTING.zh.md)
 
-1. **原子化**：一条笔记只回答一个问题、只讲一个概念。超过一屏半、或者出现第二个可以独立成题的概念时，拆开。
-2. **链接优于重复**：需要用到别的概念时，链接过去，不要再解释一遍。
-3. **入口页（MOC）负责组织**：笔记本身不关心自己在哪个“章节”；阅读顺序、主题分组写在 `index.md` 里。
-4. **可验证**：写清来源（`sources`），实测类内容注明环境和版本，避免过期知识被当成现状。
+## Principles
 
-## 目录与命名
+1. **Atomic.** A note answers one question about one concept. When a note passes about a screen and a half, or a second concept could stand on its own, split it.
+2. **Link, don't repeat.** When a note needs another concept, link to it instead of explaining it again.
+3. **Entry pages organise.** Notes don't know which "chapter" they're in; grouping and reading order live in each folder's `index.md`.
+4. **Verifiable.** Cite sources; for observed output, say which environment and version it came from.
+5. **Bilingual.** Every page exists as `foo.md` (English) and `foo.zh.md` (Chinese), kept in step.
 
-- 一级目录是**领域**（`linux/`、`macos/`、`ai-agents/`……），领域下可以再按主题建一级子目录（如 `ai-agents/sandboxing/`）。不要超过三级。
-- 新建目录时同时建 `index.md` 作为入口页。
-- 文件名用英文 kebab-case，表达概念本身：`seccomp.md`、`user-namespaces.md`。不要带日期、序号。
-- 移动或改名文件后，运行 `mkdocs build --strict` 确认没有断链。
+## Notes and case studies
+
+| Kind | Where | What |
+| --- | --- | --- |
+| Note | `docs/<domain>/[<topic>/]` | One concept, timeless as far as possible |
+| Case study | `docs/case-studies/` | One investigation: question, method, findings, what's unverified, notes produced |
+
+A case study links to notes; any reusable explanation goes into a note, not the case study.
+
+## Folders and names
+
+- Top-level folders are **domains** (`linux/`, `macos/`, `ai-agents/` …), optionally with one topic level (`ai-agents/sandboxing/`). No deeper.
+- A new folder gets `index.md` and `index.zh.md` as its entry pages.
+- File names are kebab-case English naming the concept: `seccomp.md`, `user-namespaces.md`. No dates or numbers.
+- After moving or renaming, run the checks to catch broken links.
 
 ## Front matter
 
-每条笔记都以下面的元数据开头。用脚本从模板创建，日期和路径检查都会自动完成：
+Create notes with the script, which fills dates and checks the path:
 
 ```sh
-python3 scripts/new_note.py docs/linux/landlock.md "Landlock" --type explanation --tags linux,security
+python3 scripts/new_note.py docs/linux/landlock.md "Landlock" "Landlock" --type explanation --tags linux,security
 ```
-
-元数据格式：
 
 ```yaml
 ---
-title: seccomp                     # 页面标题
-description: 一句话说明这条笔记回答什么   # 用于搜索结果和链接预览
-type: explanation                  # 见下表
-tags: [linux, security]            # 小写英文，复用已有标签
+title: seccomp
+description: One sentence on the question this note answers
+type: explanation
+tags: [linux, security]
 created: 2026-11-06
 updated: 2026-11-06
-sources:                           # 可选：权威出处
+sources:
   - https://man7.org/linux/man-pages/man2/seccomp.2.html
 ---
 ```
 
-`type` 借用 [Diátaxis](https://diataxis.fr/) 的四类，帮助判断一条笔记该怎么写：
+`type`, `tags`, `created`, `updated` and `sources` must match between the two languages. `type` follows [Diátaxis](https://diataxis.fr/), plus case studies:
 
-| type | 回答的问题 | 写法 |
+| type | Answers | Style |
 | --- | --- | --- |
-| `explanation` | 为什么、是什么 | 讲原理和取舍 |
-| `how-to` | 怎么做到某件事 | 步骤，目标明确 |
-| `reference` | 有哪些选项、参数 | 表格、清单，少叙述 |
-| `tutorial` | 跟着做一遍来学会 | 可复现的实验 |
+| `explanation` | Why, what | Principles and trade-offs |
+| `how-to` | How do I achieve X | Steps toward a goal |
+| `reference` | What options exist | Tables and lists |
+| `tutorial` | Learn by doing it once | Reproducible experiment |
+| `case-study` | How was this researched | Narrative of one investigation |
 
-## 写作
+## Writing
 
-- 正文从 H2（`##`）开始，H1 由 `title` 生成。
-- 链接用相对路径并带 `.md`：`[seccomp](../linux/seccomp.md)`。这样在 GitHub 和站点上都能跳转。
-- 提示、警告用 admonition：`!!! note` / `!!! warning`。
-- 图优先用 Mermaid（` ```mermaid `），不要提交截图形式的图表。
-- 不要写入密码、token、代理凭据、内网地址、个人主目录路径；用 `<user>`、`example.com` 代替。
+- Body starts at `##`; the title comes from front matter.
+- Links are relative with `.md`: `[seccomp](../linux/seccomp.md)`. Link to the English file name from both languages; the site resolves it to the reader's language.
+- Callouts: `!!! note` / `!!! warning`. Diagrams: Mermaid.
+- No passwords, tokens, proxy credentials, internal hostnames or personal paths; use `<user>`, `example.com`.
 
-## 提交前检查
+## Checks
 
 ```sh
+python3 scripts/check_notes.py
 .venv/bin/mkdocs build --strict
 npx markdownlint-cli2 "**/*.md"
 ```
 
-CI 会跑同样的检查。
+CI runs the same checks.

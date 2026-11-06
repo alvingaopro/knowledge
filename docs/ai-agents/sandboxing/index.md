@@ -1,25 +1,27 @@
 ---
-title: Coding agent 沙箱
-description: Claude Code 和 Codex 沙箱的学习入口与阅读顺序
+title: Coding agent sandboxes
+description: Where to start learning how Claude Code and Codex sandbox commands, and in what order
 ---
 
-Claude Code 和 Codex 都不在虚拟机里跑。它们只给 agent 执行的 **shell 命令**套一层由操作系统内核强制执行的限制：能写哪里、能读哪里、能连哪里。限制以内的命令自动放行，越界才问人。
+Neither Claude Code nor Codex runs in a virtual machine. They wrap the **shell commands** an agent runs in restrictions the operating system kernel enforces: where it may write, what it may read, which hosts it may reach. Commands inside the limits run without asking; only crossing them needs a human.
 
-## 阅读顺序
+## Reading order
 
-1. [权限审批与 OS 沙箱：两道闸](permissions-vs-sandbox.md)：先分清两层各管什么
-2. Linux 基础：[namespace](../../linux/namespaces.md)、[user namespace](../../linux/user-namespaces.md)、[capability](../../linux/capabilities.md)、[NoNewPrivs](../../linux/no-new-privs.md)、[seccomp](../../linux/seccomp.md)、[bubblewrap](../../linux/bubblewrap.md)；macOS 看 [Seatbelt](../../macos/seatbelt.md)
-3. [出网代理](egress-proxy.md)：没有网卡的沙箱怎么按域名访问网络
-4. [Claude Code 的沙箱](claude-code.md)
-5. [Codex 的沙箱](codex.md)
-6. [Claude Code 与 Codex 对比](claude-code-vs-codex.md)
-7. [解读一个正在运行的沙箱](lab-inspecting-a-live-sandbox.md)：动手实验
-8. [常见的坑](pitfalls.md)
+1. [Permissions and the OS sandbox: two gates](permissions-vs-sandbox.md): what each layer is responsible for
+2. Linux basics: [namespaces](../../linux/namespaces.md), [user namespaces](../../linux/user-namespaces.md), [capabilities](../../linux/capabilities.md), [NoNewPrivs](../../linux/no-new-privs.md), [seccomp](../../linux/seccomp.md), [bubblewrap](../../linux/bubblewrap.md); on macOS, [Seatbelt](../../macos/seatbelt.md)
+3. [Egress proxy](egress-proxy.md): how a sandbox with no network interface reaches allowed domains
+4. [Claude Code's sandbox](claude-code.md)
+5. [Codex's sandbox](codex.md)
+6. [Claude Code vs Codex](claude-code-vs-codex.md)
+7. [Inspecting a live sandbox](lab-inspecting-a-live-sandbox.md): hands-on
+8. [Common pitfalls](pitfalls.md)
 
-## 延伸阅读
+The [case study](../../case-studies/coding-agent-sandboxes.md) tells how this was researched.
 
-- [Claude Code 文档：Sandboxing](https://docs.claude.com/en/docs/claude-code/sandboxing)
-- [Anthropic 工程博客：Beyond permission prompts](https://www.anthropic.com/engineering/claude-code-sandboxing)
-- [anthropic-experimental/sandbox-runtime](https://github.com/anthropic-experimental/sandbox-runtime)：Claude Code 沙箱的开源实现
-- [Codex 文档：Security](https://developers.openai.com/codex/security)
-- [openai/codex](https://github.com/openai/codex)：`docs/sandbox.md`、`codex-rs/linux-sandbox`
+## Further reading
+
+- [Claude Code docs: Sandboxing](https://docs.claude.com/en/docs/claude-code/sandboxing)
+- [Anthropic engineering: Beyond permission prompts](https://www.anthropic.com/engineering/claude-code-sandboxing)
+- [anthropic-experimental/sandbox-runtime](https://github.com/anthropic-experimental/sandbox-runtime): the open-source implementation behind Claude Code's sandbox
+- [Codex docs: Security](https://developers.openai.com/codex/security)
+- [openai/codex](https://github.com/openai/codex): `docs/sandbox.md`, `codex-rs/linux-sandbox`

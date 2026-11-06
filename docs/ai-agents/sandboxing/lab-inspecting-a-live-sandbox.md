@@ -1,15 +1,15 @@
 ---
-title: 解读一个正在运行的沙箱
-description: 在 Claude Code 的 Linux 沙箱里逐条运行检查命令，并解释每一项输出
+title: Inspecting a live sandbox
+description: Run inspection commands inside Claude Code's Linux sandbox and explain each result
 type: tutorial
 tags: [ai-agents, claude-code, sandbox, linux]
 created: 2026-11-06
 updated: 2026-11-06
 ---
 
-在 Claude Code 开启沙箱时，让它用 Bash 运行下面的命令。以下输出来自 2026-11 的一次真实会话（Linux，Claude Code + sandbox-runtime），个人信息和凭据已去掉。方法见[从 /proc 观察](../../linux/procfs-isolation-inspection.md)。
+With Claude Code's sandbox on, have it run the commands below through Bash. The output comes from a real session in 2026-11 (Linux, Claude Code with sandbox-runtime), with personal details and credentials removed. The method is in [inspecting through /proc](../../linux/procfs-isolation-inspection.md).
 
-## 1. 进程列表
+## 1. Process list
 
 ```console
 $ ps -eo pid,args
@@ -19,11 +19,11 @@ PID COMMAND
   3 ps -eo pid,args
 ```
 
-- 只看到自己这条命令链：在新的 pid [namespace](../../linux/namespaces.md) 里。
-- PID 1 是 `apply-seccomp`，sandbox-runtime 的小程序：装好 [seccomp](../../linux/seccomp.md) 过滤器后把 zsh 作为子进程（PID 2）启动，自己留下当 1 号进程。过滤器会遗传给之后的每条命令。
-- **意味着**：命令看不到、也杀不了编辑器、浏览器等宿主进程。
+- Only our own command chain is visible: we're in a new pid [namespace](../../linux/namespaces.md).
+- PID 1 is `apply-seccomp`, a small sandbox-runtime program: it installs the [seccomp](../../linux/seccomp.md) filter, starts zsh as its child (PID 2), and stays as process 1. Every later command inherits the filter.
+- **Meaning**: commands can't see or kill host processes such as your editor or browser.
 
-## 2. Namespace
+## 2. Namespaces
 
 ```console
 $ ls -l /proc/self/ns
@@ -37,10 +37,10 @@ user   -> user:[4026533630]
 uts    -> uts:[4026531838]
 ```
 
-- cgroup、ipc、time、uts 落在初始 namespace 的固定编号 `4026531834`–`4026531839` 内：与宿主共用。
-- user、mnt、pid 是一组紧挨着的新编号：同时新建。net 也是新的，见下一步。
+- cgroup, ipc, time and uts fall in the initial namespaces' fixed range `4026531834`–`4026531839`: shared with the host.
+- user, mnt and pid are consecutive new IDs: created together. net is also new, as the next step shows.
 
-## 3. 网卡
+## 3. Network interfaces
 
 ```console
 $ cat /proc/net/dev
@@ -49,9 +49,9 @@ Inter-|   Receive …
     lo:       0 …
 ```
 
-只有 `lo`，没有 `eth0`：命令没有直连外网的路径，只能走[出网代理](egress-proxy.md)。
+Only `lo`, no `eth0`: no direct way out, only the [egress proxy](egress-proxy.md).
 
-## 4. 身份
+## 4. Identity
 
 ```console
 $ id
@@ -60,9 +60,9 @@ $ cat /proc/self/uid_map
       1000       1000          1
 ```
 
-沙箱里仍是你本人，不是 root；新建的文件在宿主上也属于你。见 [user namespace](../../linux/user-namespaces.md)。
+Still yourself, not root; files created inside belong to you on the host. See [user namespaces](../../linux/user-namespaces.md).
 
-## 5. 权限与过滤器
+## 5. Privileges and filters
 
 ```console
 $ grep -E 'Cap|NoNewPrivs|Seccomp' /proc/self/status
@@ -76,11 +76,11 @@ Seccomp:         2
 Seccomp_filters: 2
 ```
 
-- 没有任何生效的 [capability](../../linux/capabilities.md)；`CapBnd` 是上限，手里一个没有就无所谓。
-- [NoNewPrivs](../../linux/no-new-privs.md) 已打开：`sudo` 无法提权。
-- `Seccomp: 2` 是过滤模式，叠了两层过滤器。
+- No effective [capabilities](../../linux/capabilities.md); `CapBnd` is only a ceiling, irrelevant when you hold none.
+- [NoNewPrivs](../../linux/no-new-privs.md) is set: `sudo` can't escalate.
+- `Seccomp: 2` is filter mode, with two filters stacked.
 
-## 6. 网络配置
+## 6. Network settings
 
 ```console
 $ env | grep -i _proxy | sed 's/=.*@/=***@/'
@@ -89,25 +89,25 @@ ALL_PROXY=***@127.0.0.1:3128
 …
 ```
 
-各类代理变量都指向沙箱内的本地端口；`GIT_SSH_COMMAND` 也被设置成让 ssh 经代理连接。变量里带一次性代理凭据，不要原样打印或提交。
+Every kind of proxy variable points at a local port inside the sandbox; `GIT_SSH_COMMAND` makes ssh go through the proxy too. The variables carry one-time proxy credentials: don't print or commit them unredacted.
 
-## 7. 撞墙实验
+## 7. Hitting the walls
 
 ```sh
-touch ./ok.txt                 # 成功
-touch ~/outside.txt            # Read-only file system
-echo x >> .claude/settings.json  # 工作目录内也被拒：防止 agent 改自己的配置
-ls ~/.ssh                      # 被拒或看不到
-curl -sI https://github.com    # 在白名单内则成功
-curl -sI https://example.org   # 被代理拒绝或触发询问
-python3 -c "import socket;socket.create_connection(('1.1.1.1',53),3)"  # 无网卡，失败
+touch ./ok.txt                   # succeeds
+touch ~/outside.txt              # Read-only file system
+echo x >> .claude/settings.json  # denied even inside the working directory
+ls ~/.ssh                        # denied or invisible
+curl -sI https://github.com      # succeeds if allowlisted
+curl -sI https://example.org     # refused by the proxy, or prompts
+python3 -c "import socket;socket.create_connection(('1.1.1.1',53),3)"  # no interface: fails
 ```
 
-## 8. 嵌套沙箱
+## 8. Nested sandboxes
 
 ```console
 $ codex sandbox -- true
 bwrap: No permissions to create new namespace …
 ```
 
-外层沙箱禁止再建 [user namespace](../../linux/user-namespaces.md)，内层的 bwrap 直接失败。Codex 的实验要在普通终端里做。
+The outer sandbox forbids creating another [user namespace](../../linux/user-namespaces.md), so the inner bwrap fails. Run Codex experiments in an ordinary terminal.

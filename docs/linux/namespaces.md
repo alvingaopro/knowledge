@@ -1,6 +1,6 @@
 ---
-title: Namespace
-description: Linux namespace 是什么，每种隔离什么，为什么沙箱和容器都依赖它
+title: Namespaces
+description: What Linux namespaces are, what each kind isolates, and why sandboxes and containers rely on them
 type: explanation
 tags: [linux, isolation, sandbox]
 created: 2026-11-06
@@ -9,44 +9,44 @@ sources:
   - https://man7.org/linux/man-pages/man7/namespaces.7.html
 ---
 
-Namespace 给一组进程发一份内核全局资源的**私有副本**。进程不是被禁止访问宿主的东西，而是根本看不到它们。
+A namespace gives a group of processes a **private copy** of a kernel-wide resource. The process isn't forbidden from touching the host's resources; it simply can't see them.
 
-## 是什么
+## What it is
 
-内核里很多东西原本全机只有一份：进程列表、挂载好的文件系统、网卡、主机名。把进程放进新的 namespace，它看到的就是这份资源的另一个副本。可以想成给进程戴一副眼镜，镜片里只显示允许它看到的那部分世界。
+Many things in the kernel exist once per machine: the process list, the mounted file systems, network interfaces, the hostname. Put a process in a new namespace and it sees a different copy of that resource. Think of it as glasses that only show the part of the world you allow.
 
-容器（Docker、Podman）和 agent 沙箱（[bubblewrap](bubblewrap.md)）用的都是这套机制，区别只在于搭得多重。
+Containers (Docker, Podman) and agent sandboxes ([bubblewrap](bubblewrap.md)) both build on this; they differ only in how much they set up around it.
 
-## 八种 namespace
+## The eight kinds
 
-| 类型 | 隔离什么 | 在沙箱里的典型用途 |
+| Kind | Isolates | Typical use in a sandbox |
 | --- | --- | --- |
-| `mnt` | 挂载点，也就是文件树长什么样 | 重新拼文件树：根目录只读挂载，工作目录可写，敏感目录用空目录盖住 |
-| `pid` | 进程编号和可见的进程 | 看不到、也杀不了宿主进程；第一个进程编号是 1 |
-| `net` | 网卡、路由表、端口 | 只剩回环网卡 `lo`，无法直连外网 |
-| `user` | 用户编号和权限归属 | 让普通用户有资格创建其他 namespace，见 [user namespace](user-namespaces.md) |
-| `uts` | 主机名、域名 | 很少需要 |
-| `ipc` | System V 共享内存、消息队列 | 防止跨沙箱共享内存 |
-| `cgroup` | 能看到的 cgroup 层级 | 容器常用；cgroup 本身才负责限 CPU、内存 |
-| `time` | 单调时钟的偏移 | 很少需要 |
+| `mnt` | Mount points, i.e. what the file tree looks like | Rebuild the tree: root read-only, the working directory writable, sensitive directories covered with empty ones |
+| `pid` | Process IDs and which processes are visible | Host processes are invisible and can't be killed; the first process is PID 1 |
+| `net` | Network interfaces, routes, ports | Only the loopback interface `lo`; no direct route out |
+| `user` | User IDs and who owns privileges | Lets an unprivileged user create the other namespaces; see [user namespaces](user-namespaces.md) |
+| `uts` | Hostname and domain name | Rarely needed |
+| `ipc` | System V shared memory and message queues | Prevents shared memory across the boundary |
+| `cgroup` | The visible cgroup hierarchy | Common in containers; cgroups themselves limit CPU and memory |
+| `time` | Offsets of monotonic clocks | Rarely needed |
 
-## 怎么创建和观察
+## Creating and inspecting
 
-- 系统调用：`clone(2)` 创建子进程时带上 `CLONE_NEW*` 标志，或用 `unshare(2)` 让当前进程脱离原 namespace，`setns(2)` 加入已有的。
-- 命令行：`unshare`、[`bwrap`](bubblewrap.md)、`nsenter`。
-- 观察：`/proc/<pid>/ns/` 下每一项指向一个 namespace，方括号里是编号；编号相同即同一个 namespace。详见[从 /proc 观察](procfs-isolation-inspection.md)。
+- System calls: `clone(2)` with `CLONE_NEW*` flags, `unshare(2)` to leave the current namespaces, `setns(2)` to join an existing one.
+- Command line: `unshare`, [`bwrap`](bubblewrap.md), `nsenter`.
+- Inspecting: each entry under `/proc/<pid>/ns/` points at a namespace, with its ID in brackets; equal IDs mean the same namespace. See [inspecting through /proc](procfs-isolation-inspection.md).
 
 ```sh
-# 不需要 root（依赖 user namespace）
-unshare --user --map-root-user --pid --fork --mount-proc ps -ef   # 只看到两个进程
-unshare --user --map-root-user --net ip link                      # 只有 lo，且是 DOWN
+# No root needed (relies on user namespaces)
+unshare --user --map-root-user --pid --fork --mount-proc ps -ef   # only two processes
+unshare --user --map-root-user --net ip link                      # only lo, and it is DOWN
 ```
 
-## 它不管什么
+## What it doesn't do
 
-Namespace 只决定“看到什么”。资源用量（CPU、内存、进程数）归 cgroup 管；能调用哪些系统调用归 [seccomp](seccomp.md) 管；有没有特权归 [capability](capabilities.md) 管。
+Namespaces decide what a process *sees*. Resource usage (CPU, memory, process count) is the job of cgroups; which system calls are allowed is [seccomp](seccomp.md)'s; whether the process holds privileges is a matter of [capabilities](capabilities.md).
 
-## 相关
+## Related
 
-- [User namespace](user-namespaces.md)
+- [User namespaces](user-namespaces.md)
 - [bubblewrap](bubblewrap.md)

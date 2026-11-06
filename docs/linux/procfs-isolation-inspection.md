@@ -1,6 +1,6 @@
 ---
-title: 从 /proc 观察进程的隔离状态
-description: 用 ps、/proc/self/ns、/proc/self/status 等判断自己是否在沙箱里、被限制了什么
+title: Inspecting isolation through /proc
+description: Use ps, /proc/self/ns, /proc/self/status and friends to tell whether you're sandboxed and how
 type: how-to
 tags: [linux, sandbox, debugging]
 created: 2026-11-06
@@ -9,24 +9,24 @@ sources:
   - https://man7.org/linux/man-pages/man5/proc.5.html
 ---
 
-`/proc` 是内核提供的虚拟目录，里面的“文件”是进程的实时信息；`/proc/self` 指当前进程自己。下面几条命令合起来，就能判断一个 shell 是否在沙箱里、被限制了什么。
+`/proc` is a virtual directory provided by the kernel; its "files" are live information about processes, and `/proc/self` is the current process. Together, the commands below tell you whether a shell is sandboxed and what it's restricted from.
 
-## 一组检查命令
+## The checks
 
 ```sh
-ps -eo pid,args | head                    # 看得到多少进程，PID 1 是谁
-ls -l /proc/self/ns                       # 属于哪些 namespace
-cat /proc/self/uid_map                    # 用户编号怎么映射
-cat /proc/net/dev                         # 有哪些网卡
+ps -eo pid,args | head                    # how many processes are visible, who is PID 1
+ls -l /proc/self/ns                       # which namespaces we're in
+cat /proc/self/uid_map                    # how user IDs are mapped
+cat /proc/net/dev                         # which network interfaces exist
 grep -E 'Cap|NoNewPrivs|Seccomp' /proc/self/status
-env | grep -i _proxy                      # 网络是否被导向代理
+env | grep -i _proxy                      # is traffic steered to a proxy
 ```
 
-## 怎么读
+## Reading the output
 
-### 进程列表
+### Process list
 
-宿主上通常有几百个进程。如果只看到自己这条命令链上的几个，并且 PID 1 不是 `systemd`/`init`，说明在新的 pid [namespace](namespaces.md) 里。
+A host usually runs hundreds of processes. If you only see your own command chain, and PID 1 isn't `systemd`/`init`, you're in a new pid [namespace](namespaces.md).
 
 ### `/proc/self/ns`
 
@@ -39,27 +39,27 @@ user   -> user:[4026533630]
 uts    -> uts:[4026531838]
 ```
 
-方括号里是 namespace 编号，相同即同一个 namespace。内核给“开机时那一份”（初始 namespace）中的 user、pid、uts、ipc、cgroup、time 分配了固定编号 `4026531834`–`4026531839`。看到这个范围的数，就是和宿主共用；其他编号说明是新建的。mnt 和 net 的初始编号是动态分配的，要靠别的证据判断（例如网卡列表）。
+The bracketed number is the namespace ID; equal IDs mean the same namespace. The kernel gives the boot-time (initial) user, pid, uts, ipc, cgroup and time namespaces fixed IDs `4026531834`–`4026531839`. A number in that range means shared with the host; anything else is new. The initial mnt and net IDs are allocated dynamically, so judge those by other evidence (such as the interface list).
 
 ### `uid_map`
 
-三列：namespace 内起始编号、宿主起始编号、数量。`1000 1000 1` 表示沙箱里仍是你本人，不是 root。见 [user namespace](user-namespaces.md)。
+Three columns: first ID inside, first ID on the host, count. `1000 1000 1` means you're still yourself in the sandbox, not root. See [user namespaces](user-namespaces.md).
 
 ### `/proc/net/dev`
 
-只有 `lo` 说明在新的 net namespace 里，没有直连外网的网卡。
+Only `lo` means a new net namespace with no interface that reaches outside.
 
 ### `/proc/self/status`
 
-| 字段 | 沙箱里常见值 | 含义 |
+| Field | Typical in a sandbox | Meaning |
 | --- | --- | --- |
-| `CapEff` / `CapPrm` | `0` | 没有任何特权能力，见 [capability](capabilities.md) |
-| `NoNewPrivs` | `1` | 无法通过 setuid 程序提权，见 [NoNewPrivs](no-new-privs.md) |
-| `Seccomp` | `2` | 装了系统调用过滤器，见 [seccomp](seccomp.md) |
-| `Seccomp_filters` | `≥1` | 叠了几层过滤器 |
+| `CapEff` / `CapPrm` | `0` | No privileges at all; see [capabilities](capabilities.md) |
+| `NoNewPrivs` | `1` | setuid programs can't escalate; see [NoNewPrivs](no-new-privs.md) |
+| `Seccomp` | `2` | A system call filter is installed; see [seccomp](seccomp.md) |
+| `Seccomp_filters` | `≥1` | How many filters are stacked |
 
-单独一项说明不了问题（普通 shell 的 `CapEff` 也是 0），要几项一起看。
+No single field proves much (an ordinary shell's `CapEff` is also 0); read them together.
 
-## 实例
+## Worked example
 
-[解读一个正在运行的 agent 沙箱](../ai-agents/sandboxing/lab-inspecting-a-live-sandbox.md)用这套命令逐条分析了 Claude Code 的沙箱。
+[Inspecting a live agent sandbox](../ai-agents/sandboxing/lab-inspecting-a-live-sandbox.md) runs these commands inside Claude Code's sandbox and explains each result.

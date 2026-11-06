@@ -1,27 +1,27 @@
 ---
 title: Linux
-description: Linux 内核的隔离与权限机制
+description: Isolation and privilege mechanisms in the Linux kernel
 ---
 
-Linux 内核没有一个叫“沙箱”的功能。沙箱、容器都是把下面这些互相独立的机制拼起来用的。
+The Linux kernel has no single feature called "sandbox". Sandboxes and containers combine the independent mechanisms below.
 
-## 隔离：进程能看到什么
+## Isolation: what a process can see
 
-- [Namespace](namespaces.md)：给进程一份自己的进程列表、文件树、网络
-- [User namespace](user-namespaces.md)：让普通用户也能创建其他 namespace
+- [Namespaces](namespaces.md): a private process list, file tree and network
+- [User namespaces](user-namespaces.md): let unprivileged users create the other namespaces
 
-## 权限：进程能做什么
+## Privilege: what a process can do
 
-- [Capability](capabilities.md)：被拆成小块的 root 权限
-- [NoNewPrivs](no-new-privs.md)：禁止进程以后再变强
-- [seccomp](seccomp.md)：给系统调用加过滤器
-- [Landlock](landlock.md)：普通用户自己限制能访问的文件
+- [Capabilities](capabilities.md): root's power split into pieces
+- [NoNewPrivs](no-new-privs.md): a process can never gain privileges again
+- [seccomp](seccomp.md): a filter on system calls
+- [Landlock](landlock.md): unprivileged, path-based file access restrictions
 
-## 工具与观察
+## Tools and inspection
 
-- [bubblewrap](bubblewrap.md)：把以上机制组合成一个轻量沙箱的命令行工具
-- [从 /proc 看一个进程的隔离状态](procfs-isolation-inspection.md)
+- [bubblewrap](bubblewrap.md): a command-line tool that combines the above into a lightweight sandbox
+- [Inspecting isolation through /proc](procfs-isolation-inspection.md)
 
-## 建议阅读顺序
+## Suggested order
 
-namespace → user namespace → capability → NoNewPrivs → seccomp → bubblewrap → 用 /proc 观察。
+namespaces → user namespaces → capabilities → NoNewPrivs → seccomp → bubblewrap → inspecting with /proc.

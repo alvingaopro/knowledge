@@ -1,22 +1,23 @@
 site_name: Knowledge
-site_description: 一条笔记一个概念的技术知识库
+site_description: A technical knowledge base with one concept per note
 site_url: https://alvingaopro.github.io/knowledge/
 repo_url: https://github.com/alvingaopro/knowledge
 repo_name: alvingaopro/knowledge
 edit_uri: edit/main/docs/
 docs_dir: docs
 
-# 导航不手写：由目录结构生成，各目录的 index.md 作为入口页。
+# Navigation is not written by hand: it comes from the folders, with each
+# folder's index.md as its entry page. Every page exists twice: foo.md (English,
+# served at /) and foo.zh.md (Chinese, served at /zh/).
 
 theme:
   name: material
-  language: zh
+  custom_dir: overrides
   features:
     - navigation.indexes
     - navigation.sections
     - navigation.top
     - navigation.footer
-    - navigation.instant
     - search.highlight
     - search.suggest
     - content.code.copy
@@ -29,14 +30,14 @@ theme:
       accent: deep orange
       toggle:
         icon: material/weather-night
-        name: 切换到深色
+        name: Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: teal
       accent: deep orange
       toggle:
         icon: material/weather-sunny
-        name: 切换到浅色
+        name: Light mode
 
 plugins:
   - search:
@@ -44,6 +45,19 @@ plugins:
         - zh
         - en
   - tags
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: false
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+          build: true
+        - locale: zh
+          name: 中文
+          build: true
 
 validation:
   omitted_files: warn

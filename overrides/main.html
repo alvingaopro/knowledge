@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  {#- Pick the page language from the browser's languages on arrival, unless
+      the reader has chosen one with the language switcher. GitHub Pages can't
+      negotiate languages on the server, so this runs before the page renders. -#}
+  <script>
+    (function () {
+      var base = new URL({{ (config.site_url or "/") | tojson }}).pathname;
+      var path = location.pathname;
+      if (path.indexOf(base) !== 0) return;
+      var rel = path.slice(base.length);
+      var isZh = rel === "zh" || rel.indexOf("zh/") === 0;
+      var KEY = "knowledge.lang";
+      var want = null;
+      try { want = localStorage.getItem(KEY); } catch (e) {}
+      if (want !== "en" && want !== "zh") {
+        var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"];
+        want = /^zh\b/i.test(langs[0] || "") ? "zh" : "en";
+      }
+      var target = null;
+      if (want === "zh" && !isZh) target = base + "zh/" + rel;
+      if (want === "en" && isZh) target = base + rel.replace(/^zh\/?/, "");
+      if (target !== null) location.replace(target + location.search + location.hash);
+
+      // Remember an explicit choice made with the language switcher.
+      document.addEventListener("click", function (ev) {
+        var a = ev.target.closest && ev.target.closest("a[hreflang]");
+        if (!a) return;
+        var lang = a.getAttribute("hreflang").slice(0, 2);
+        if (lang === "en" || lang === "zh") {
+          try { localStorage.setItem(KEY, lang); } catch (e) {}
+        }
+      }, true);
+    })();
+  </script>
+{% endblock %}

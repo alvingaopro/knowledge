@@ -1,6 +1,6 @@
 ---
 title: Landlock
-description: 让普通进程自己按路径限制能访问的文件和端口的 Linux 安全模块
+description: A Linux security module that lets an unprivileged process restrict its own access to paths and ports
 type: explanation
 tags: [linux, security, sandbox]
 created: 2026-11-06
@@ -9,28 +9,28 @@ sources:
   - https://docs.kernel.org/userspace-api/landlock.html
 ---
 
-Landlock 是 Linux 5.13 起加入的安全模块：普通进程不需要 root，就能给自己和子进程声明“只能访问这些路径”。
+Landlock, in Linux since 5.13, lets an ordinary process, without root, declare "only these paths" for itself and its children.
 
-## 和其他机制的区别
+## Compared with other mechanisms
 
-| 机制 | 按什么限制 | 需要特权吗 |
+| Mechanism | Restricts by | Needs privileges? |
 | --- | --- | --- |
-| [mount namespace](namespaces.md) | 重新拼一棵文件树 | 需要 [user namespace](user-namespaces.md) |
-| [seccomp](seccomp.md) | 系统调用编号和数值参数，不能看路径 | 不需要（配合 NoNewPrivs） |
-| Landlock | 文件路径层级；新版本还能限制 TCP 端口 | 不需要 |
-| SELinux / AppArmor | 管理员写的全局策略 | 需要 root 配置 |
+| [mount namespace](namespaces.md) | Rebuilding a file tree | Needs a [user namespace](user-namespaces.md) |
+| [seccomp](seccomp.md) | System call numbers and numeric arguments; can't see paths | No (with NoNewPrivs) |
+| Landlock | File path hierarchies; newer versions also TCP ports | No |
+| SELinux / AppArmor | System-wide policy written by an administrator | Root to configure |
 
-Landlock 的优点是不用建 namespace，在禁止 user namespace 的环境里也能用；缺点是能力随内核版本（ABI 版本）逐步增加，旧内核上可能只能部分生效。
+Landlock needs no namespaces, so it works where user namespaces are disabled. The catch is that its abilities grow with kernel versions (ABI versions), so on older kernels it may only partly apply.
 
-## 怎么用
+## How it's used
 
-三个系统调用：`landlock_create_ruleset` 声明要管哪些操作，`landlock_add_rule` 为路径添加允许规则，`landlock_restrict_self` 生效。生效后不可撤销，并遗传给子进程。
+Three system calls: `landlock_create_ruleset` declares which operations are governed, `landlock_add_rule` allows paths, `landlock_restrict_self` applies it. Once applied it can't be undone and is inherited by children.
 
-## 在 agent 沙箱里的用途
+## Use in agent sandboxes
 
-Codex 的 Linux 沙箱早期用 Landlock + [seccomp](seccomp.md) 实现；新版本改为默认 [bubblewrap](bubblewrap.md)，Landlock 保留为回退。见 [Codex 的沙箱](../ai-agents/sandboxing/codex.md)。
+Codex's Linux sandbox originally used Landlock plus [seccomp](seccomp.md); newer versions default to [bubblewrap](bubblewrap.md) and keep Landlock as a fallback. See [Codex's sandbox](../ai-agents/sandboxing/codex.md).
 
-## 相关
+## Related
 
 - [seccomp](seccomp.md)
 - [bubblewrap](bubblewrap.md)

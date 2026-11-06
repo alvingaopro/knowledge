@@ -1,8 +1,8 @@
 ---
 title: AI agents
-description: coding agent 的工作方式与安全机制
+description: How coding agents work and how they are kept safe
 ---
 
-## 主题
+## Topics
 
-- [沙箱](sandboxing/index.md)：Claude Code 和 Codex 如何用操作系统机制限制 agent 执行的命令
+- [Sandboxing](sandboxing/index.md): how Claude Code and Codex use operating-system mechanisms to confine the commands an agent runs

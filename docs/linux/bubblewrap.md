@@ -1,6 +1,6 @@
 ---
 title: bubblewrap
-description: bwrap 如何用 namespace 和挂载拼出一个无需 root 的轻量沙箱
+description: How bwrap builds a lightweight, rootless sandbox out of namespaces and mounts
 type: explanation
 tags: [linux, sandbox, tools]
 created: 2026-11-06
@@ -9,19 +9,19 @@ sources:
   - https://github.com/containers/bubblewrap
 ---
 
-bubblewrap（命令 `bwrap`）是一个小工具：一条命令就为目标程序建好 [namespace](namespaces.md)、拼好文件树、丢掉特权，程序结束沙箱也随之消失。Flatpak、Claude Code 和 Codex 的 Linux 沙箱都用它。
+bubblewrap (command `bwrap`) is a small tool: one command sets up [namespaces](namespaces.md), assembles a file tree and drops privileges for a target program, and the sandbox disappears when the program exits. Flatpak, Claude Code and Codex all use it on Linux.
 
-## 它做了什么
+## What it does
 
-1. 创建 [user namespace](user-namespaces.md)，在里面临时拥有全部 [capability](capabilities.md)。
-2. 按参数创建 mnt、pid、net 等 namespace。
-3. 在新的 mnt namespace 里按参数一项项挂载，拼出程序能看到的文件树。
-4. 丢掉全部 capability，打开 [NoNewPrivs](no-new-privs.md)，可选地装上 [seccomp](seccomp.md) 过滤器。
-5. 执行目标命令。
+1. Creates a [user namespace](user-namespaces.md) and briefly holds every [capability](capabilities.md) in it.
+2. Creates mnt, pid, net and other namespaces as requested.
+3. Mounts, one argument at a time, the file tree the program will see inside the new mnt namespace.
+4. Drops all capabilities, sets [NoNewPrivs](no-new-privs.md), and optionally installs a [seccomp](seccomp.md) filter.
+5. Executes the target command.
 
-它不需要镜像、不需要守护进程，也不限制 CPU 和内存。
+It needs no image and no daemon, and it doesn't limit CPU or memory.
 
-## 最小例子
+## Minimal example
 
 ```sh
 bwrap --ro-bind / / \
@@ -31,30 +31,30 @@ bwrap --ro-bind / / \
       --unshare-user --unshare-pid --unshare-net \
       --die-with-parent \
       bash -c 'touch ok; touch ~/no; curl -sI https://example.com'
-# ok 写成功；~/no 报 Read-only file system；curl 连不上任何地址
+# ok is written; ~/no fails with Read-only file system; curl reaches nothing
 ```
 
-## 常用参数
+## Common options
 
-| 参数 | 作用 |
+| Option | Effect |
 | --- | --- |
-| `--ro-bind SRC DEST` | 只读挂载 |
-| `--bind SRC DEST` | 可写挂载 |
-| `--tmpfs DEST` | 挂一个空的内存文件系统，常用来“盖住”敏感目录 |
-| `--dev /dev`、`--proc /proc` | 提供最小的设备目录和与新 pid namespace 匹配的 `/proc` |
-| `--unshare-user/-pid/-net/-ipc/-uts` | 创建对应 namespace；`--unshare-all` 全部创建 |
-| `--die-with-parent` | 父进程退出时沙箱一起结束 |
-| `--seccomp FD` | 从文件描述符读入编译好的 seccomp 过滤器 |
+| `--ro-bind SRC DEST` | Read-only mount |
+| `--bind SRC DEST` | Writable mount |
+| `--tmpfs DEST` | Mount an empty in-memory file system, often to hide a sensitive directory |
+| `--dev /dev`, `--proc /proc` | A minimal device directory and a `/proc` matching the new pid namespace |
+| `--unshare-user/-pid/-net/-ipc/-uts` | Create that namespace; `--unshare-all` creates them all |
+| `--die-with-parent` | End the sandbox when the parent exits |
+| `--seccomp FD` | Read a compiled seccomp filter from a file descriptor |
 
-参数按顺序生效：先 `--ro-bind / /`，再把可写目录 `--bind` 回来，最后用 `--tmpfs` 盖住要隐藏的路径。
+Options apply in order: `--ro-bind / /` first, then `--bind` writable directories back, then `--tmpfs` over paths to hide.
 
-## 局限
+## Limits
 
-- 依赖非特权 user namespace，被禁用时直接失败，嵌套在另一个沙箱里也常失败。
-- 没有网络之后若要按域名放行，需要另外搭[出网代理](../ai-agents/sandboxing/egress-proxy.md)。
+- It depends on unprivileged user namespaces; if they're disabled, or you're nested inside another sandbox, it fails outright.
+- With no network, allowing specific domains needs a separate [egress proxy](../ai-agents/sandboxing/egress-proxy.md).
 
-## 相关
+## Related
 
-- [Namespace](namespaces.md)
-- [Claude Code 的沙箱](../ai-agents/sandboxing/claude-code.md)
-- [Codex 的沙箱](../ai-agents/sandboxing/codex.md)
+- [Namespaces](namespaces.md)
+- [Claude Code's sandbox](../ai-agents/sandboxing/claude-code.md)
+- [Codex's sandbox](../ai-agents/sandboxing/codex.md)

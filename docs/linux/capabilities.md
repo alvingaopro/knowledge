@@ -1,6 +1,6 @@
 ---
-title: Capability
-description: Linux 把 root 权限拆成的小块，以及如何读 /proc 里的能力位图
+title: Capabilities
+description: How Linux splits root's power into pieces, and how to read the capability bitmaps in /proc
 type: explanation
 tags: [linux, security, privileges]
 created: 2026-11-06
@@ -9,37 +9,37 @@ sources:
   - https://man7.org/linux/man-pages/man7/capabilities.7.html
 ---
 
-Capability 把 root 的特权拆成四十来个独立的能力；进程只拿到需要的那几个，而不是全有或全无。
+Capabilities split root's privileges into some forty independent pieces, so a process can hold just the ones it needs instead of all or nothing.
 
-## 是什么
+## What they are
 
-例如：
+For example:
 
-| 能力 | 允许做什么 |
+| Capability | Allows |
 | --- | --- |
-| `CAP_SYS_ADMIN` | 挂载文件系统等大量管理操作（常被称为“新的 root”） |
-| `CAP_NET_ADMIN` | 修改网卡、路由、防火墙 |
-| `CAP_NET_BIND_SERVICE` | 监听 1024 以下端口 |
-| `CAP_DAC_OVERRIDE` | 无视文件读写权限 |
-| `CAP_SETUID` | 任意切换用户编号 |
+| `CAP_SYS_ADMIN` | Mounting file systems and many other admin operations (often called "the new root") |
+| `CAP_NET_ADMIN` | Changing interfaces, routes, firewall rules |
+| `CAP_NET_BIND_SERVICE` | Listening on ports below 1024 |
+| `CAP_DAC_OVERRIDE` | Ignoring file read/write permissions |
+| `CAP_SETUID` | Switching to any user ID |
 
-## 五组集合
+## The five sets
 
-`/proc/<pid>/status` 里有五行，每行是十六进制位图，每一位代表一种能力：
+`/proc/<pid>/status` has five lines, each a hexadecimal bitmap with one bit per capability:
 
-| 字段 | 含义 |
+| Field | Meaning |
 | --- | --- |
-| `CapEff` | Effective，此刻真正生效、内核检查的那组 |
-| `CapPrm` | Permitted，允许拥有的上限，Eff 只能从这里取 |
-| `CapInh` | Inheritable，执行新程序时可以继承的 |
-| `CapBnd` | Bounding，整个进程树的天花板，只能缩小 |
-| `CapAmb` | Ambient，普通程序执行时也能保留的 |
+| `CapEff` | Effective: what the kernel checks right now |
+| `CapPrm` | Permitted: the ceiling Effective can draw from |
+| `CapInh` | Inheritable: what may carry over when executing a new program |
+| `CapBnd` | Bounding: the ceiling for the whole process tree; can only shrink |
+| `CapAmb` | Ambient: kept even when executing ordinary programs |
 
-用 `capsh --decode=000001ffffffffff` 可以把位图翻译成能力名。
+`capsh --decode=000001ffffffffff` translates a bitmap into names.
 
-## 在沙箱里怎么用
+## In a sandbox
 
-[bubblewrap](bubblewrap.md) 在 [user namespace](user-namespaces.md) 里搭笼子时临时拥有全部能力，搭完后全部丢掉，再执行目标命令。所以沙箱内常见：
+[bubblewrap](bubblewrap.md) briefly holds every capability inside its [user namespace](user-namespaces.md) while setting up, then drops them all before running the target command. So inside a sandbox you typically see:
 
 ```text
 CapPrm: 0000000000000000
@@ -47,11 +47,11 @@ CapEff: 0000000000000000
 CapBnd: 000001ffffffffff
 ```
 
-`CapBnd` 全是 1 没关系：Prm 和 Eff 都是 0，再配合 [NoNewPrivs](no-new-privs.md)，拿不回来。
+An all-ones `CapBnd` is fine: Permitted and Effective are empty, and with [NoNewPrivs](no-new-privs.md) there's no way to get them back.
 
-注意：宿主上普通用户的 shell `CapEff` 本来也是 0。这一行本身不能证明在沙箱里，要结合 [namespace](namespaces.md) 和 [seccomp](seccomp.md) 一起看。
+Note that an ordinary user's shell on the host also has `CapEff` of 0. This line alone doesn't prove you're sandboxed; read it together with [namespaces](namespaces.md) and [seccomp](seccomp.md).
 
-## 相关
+## Related
 
 - [NoNewPrivs](no-new-privs.md)
-- [从 /proc 观察](procfs-isolation-inspection.md)
+- [Inspecting through /proc](procfs-isolation-inspection.md)

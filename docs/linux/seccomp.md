@@ -1,6 +1,6 @@
 ---
 title: seccomp
-description: 用 BPF 过滤器检查进程的每一次系统调用
+description: Checking every system call a process makes with a BPF filter
 type: explanation
 tags: [linux, security, sandbox]
 created: 2026-11-06
@@ -10,36 +10,36 @@ sources:
   - https://docs.kernel.org/userspace-api/seccomp_filter.html
 ---
 
-seccomp（secure computing）让进程给自己装一段过滤程序，每次系统调用先经过它：放行、返回错误，或者杀掉进程。
+seccomp (secure computing) lets a process install a small filter program that every system call passes through first: allow it, return an error, or kill the process.
 
-## 先理解系统调用
+## System calls first
 
-程序要做任何实际的事，比如打开文件、建立网络连接、启动新程序，都必须请内核代办，这个请求就叫系统调用（syscall），例如 `openat`、`connect`、`execve`、`socket`。拦住系统调用，就拦住了程序能做的事，不论它用什么语言写、命令怎么拼。
+To do anything real (open a file, make a network connection, start a program) a program must ask the kernel. That request is a system call (syscall), e.g. `openat`, `connect`, `execve`, `socket`. Stop the system call and you stop the action, whatever language the program is in and however the command was written.
 
-## 两种模式
+## Two modes
 
-| `/proc/<pid>/status` 的 `Seccomp` | 含义 |
+| `Seccomp` in `/proc/<pid>/status` | Meaning |
 | --- | --- |
-| `0` | 未启用 |
-| `1` | strict 模式：只允许 `read`、`write`、`exit`、`sigreturn` |
-| `2` | filter 模式：装了自定义的 BPF 过滤器 |
+| `0` | Off |
+| `1` | Strict mode: only `read`, `write`, `exit`, `sigreturn` |
+| `2` | Filter mode: a custom BPF filter is installed |
 
-`Seccomp_filters: N` 表示叠了几层过滤器；每次系统调用要依次通过所有层，结果取最严格的那个。
+`Seccomp_filters: N` is how many filters are stacked; each system call goes through all of them and the strictest result wins.
 
-## 过滤器的性质
+## Properties of a filter
 
-- 检查的是系统调用编号和参数的**数值**（例如 `socket` 的第一个参数是不是 `AF_UNIX`），不能解引用指针，所以不能按文件路径过滤；按路径限制要靠 [mount namespace](namespaces.md) 或 [Landlock](landlock.md)。
-- 只能叠加，不能卸载。
-- 通过 `fork`、`execve` 遗传给所有子孙。
-- 普通用户安装前必须先打开 [NoNewPrivs](no-new-privs.md)。
+- It checks the system call number and the **numeric values** of its arguments (e.g. whether `socket`'s first argument is `AF_UNIX`). It can't dereference pointers, so it can't filter by file path; path restrictions need a [mount namespace](namespaces.md) or [Landlock](landlock.md).
+- Filters can only be added, never removed.
+- They're inherited through `fork` and `execve`.
+- An unprivileged process must set [NoNewPrivs](no-new-privs.md) first.
 
-## 在 agent 沙箱里的用途
+## Use in agent sandboxes
 
-Claude Code 的 Linux 沙箱用 seccomp 禁止新建 Unix socket。Unix socket 是本机进程间通信用的“插座文件”。不禁止的话，命令可以绕过[出网代理](../ai-agents/sandboxing/egress-proxy.md)，直接连宿主上的 `docker.sock` 这类 socket，等于拿到笼外的控制权。
+Claude Code's Linux sandbox uses seccomp to block creating new Unix sockets. A Unix socket is a "socket file" processes on one machine use to talk to each other. Without the block, a command could bypass the [egress proxy](../ai-agents/sandboxing/egress-proxy.md) and connect straight to host sockets like `docker.sock`, gaining control outside the sandbox.
 
-Docker 也默认装一份 seccomp 配置，禁掉四十多个危险系统调用。
+Docker also installs a default seccomp profile that blocks over forty dangerous system calls.
 
-## 相关
+## Related
 
 - [NoNewPrivs](no-new-privs.md)
 - [bubblewrap](bubblewrap.md)

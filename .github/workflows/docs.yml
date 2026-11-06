@@ -27,6 +27,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
+      - name: Check both languages
+        run: python3 scripts/check_notes.py
       - name: Build (broken links and anchors fail)
         run: mkdocs build --strict
       - name: Upload site

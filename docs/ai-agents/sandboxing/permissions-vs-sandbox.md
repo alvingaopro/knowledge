@@ -1,42 +1,42 @@
 ---
-title: 权限审批与 OS 沙箱
-description: agent 的工具调用要过的两道检查，各自管什么、为什么需要两道
+title: Permissions and the OS sandbox
+description: The two checks an agent's tool call passes, what each covers, and why both are needed
 type: explanation
 tags: [ai-agents, sandbox, security]
 created: 2026-11-06
 updated: 2026-11-06
 ---
 
-agent 的一个工具调用从模型发出到真正执行，要过两道检查：应用层的**权限审批**看命令写了什么，内核层的 **OS 沙箱**看进程实际做了什么。
+A tool call goes through two checks between the model and execution: application-level **permissions** read what the command says; the kernel-level **OS sandbox** watches what the process actually does.
 
-## 两道闸
+## Two gates
 
 ```mermaid
 flowchart LR
-  M["模型<br/>Bash('rm -rf build')"] --> P["权限 / 审批<br/>读命令文本"]
-  P -->|放行| S["OS 沙箱<br/>检查实际的系统调用"]
-  S --> K["内核执行"]
+  M["Model<br/>Bash('rm -rf build')"] --> P["Permissions / approval<br/>reads the command text"]
+  P -->|allowed| S["OS sandbox<br/>checks actual system calls"]
+  S --> K["Kernel executes"]
 ```
 
-| | 权限审批 | OS 沙箱 |
+| | Permissions | OS sandbox |
 | --- | --- | --- |
-| 位置 | agent 程序内部 | 操作系统内核 |
-| 依据 | 命令文本、工具名、规则列表、hook | 进程发起的系统调用 |
-| 弱点 | 命令可以换着花样写来绕过；看不懂就只能问人，打断频繁 | 只覆盖它包住的进程；配置过宽就形同虚设 |
-| Claude Code | permissions（allow/deny 规则、hook） | sandbox（[bubblewrap](../../linux/bubblewrap.md) / [Seatbelt](../../macos/seatbelt.md)） |
+| Where | Inside the agent program | The operating-system kernel |
+| Decides by | Command text, tool names, rule lists, hooks | The system calls the process makes |
+| Weakness | Commands can be rephrased to slip past; anything unrecognised means asking a human, often | Only covers the processes it wraps; too-broad settings make it hollow |
+| Claude Code | permissions (allow/deny rules, hooks) | sandbox ([bubblewrap](../../linux/bubblewrap.md) / [Seatbelt](../../macos/seatbelt.md)) |
 | Codex | `approval_policy` | `sandbox_mode` |
 
-## 为什么两道都要
+## Why both
 
-只有审批：每条不认识的命令都要问人，用户很快就会无脑点“允许”。
+With permissions alone, every unfamiliar command needs a human, and people soon click "allow" without reading.
 
-有了沙箱：既然命令最多只能改工作目录、只能连白名单主机，笼子内的命令就可以自动放行，只对越界的事审批。这是两家产品共同的思路：**先隔离，再只对越界的事审批**。
+With a sandbox, a command can at most change the working directory and reach allowlisted hosts, so commands inside can run without asking; only boundary crossings need approval. Both products follow the same idea: **confine first, then approve only what crosses the boundary**.
 
-## 沙箱不包什么
+## What the sandbox doesn't cover
 
-沙箱只包 shell 命令及其子进程。以 Claude Code 为例，Read / Edit / WebFetch 等内置工具、MCP server、hook 都不在 OS 沙箱里，仍然只靠权限规则。
+Only shell commands and their children are sandboxed. In Claude Code, built-in tools such as Read, Edit and WebFetch, MCP servers and hooks run outside the OS sandbox and rely on permission rules alone.
 
-## 相关
+## Related
 
-- [Claude Code 的沙箱](claude-code.md)
-- [Codex 的沙箱](codex.md)
+- [Claude Code's sandbox](claude-code.md)
+- [Codex's sandbox](codex.md)

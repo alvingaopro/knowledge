@@ -1,6 +1,6 @@
 ---
-title: Claude Code 的沙箱
-description: Claude Code 如何用 sandbox-runtime 限制 Bash 命令的文件和网络访问，以及相关配置
+title: Claude Code's sandbox
+description: How Claude Code confines Bash commands' file and network access with sandbox-runtime, and how to configure it
 type: explanation
 tags: [ai-agents, claude-code, sandbox]
 created: 2026-11-06
@@ -11,27 +11,27 @@ sources:
   - https://github.com/anthropic-experimental/sandbox-runtime
 ---
 
-Claude Code 用开源的 `@anthropic-ai/sandbox-runtime`（命令行 `srt`）把每条 Bash 命令单独包进 OS 沙箱：写只限工作目录和临时目录，网络只能经代理访问白名单域名。
+Claude Code uses the open-source `@anthropic-ai/sandbox-runtime` (CLI `srt`) to wrap each Bash command in an OS sandbox: writes only in the working and temporary directories, network only to allowlisted domains through a proxy.
 
-## 实现
+## Implementation
 
-| 平台 | 机制 |
+| Platform | Mechanism |
 | --- | --- |
-| Linux | [bubblewrap](../../linux/bubblewrap.md) 建 user / mnt / pid / net [namespace](../../linux/namespaces.md)；[seccomp](../../linux/seccomp.md) 禁止新建 Unix socket；`socat` 把流量桥接到沙箱外的[出网代理](egress-proxy.md)。依赖 `bwrap` 和 `socat` |
-| macOS | `sandbox-exec` 加按配置动态生成的 [Seatbelt](../../macos/seatbelt.md) 规则 |
+| Linux | [bubblewrap](../../linux/bubblewrap.md) creates user / mnt / pid / net [namespaces](../../linux/namespaces.md); [seccomp](../../linux/seccomp.md) blocks new Unix sockets; `socat` bridges traffic to the [egress proxy](egress-proxy.md) outside. Needs `bwrap` and `socat` |
+| macOS | `sandbox-exec` with a [Seatbelt](../../macos/seatbelt.md) profile generated from the settings |
 
-每条命令单独套一层，不是整个会话进一个容器。
+Each command gets its own sandbox; the session as a whole isn't in a container.
 
-## 文件系统
+## File system
 
-| 操作 | 默认 | 说明 |
+| Operation | Default | Notes |
 | --- | --- | --- |
-| 读 | 几乎都能读，只拒绝列出的路径 | 拒绝名单来自权限规则里的 `Read(...)` deny 和沙箱配置 |
-| 写 | 只能写当前工作目录和临时目录 | 其中再挖掉 `.claude/settings.json`、hooks、skills 等，防止 agent 改自己的配置给自己放权 |
+| Read | Almost everything, except listed paths | The deny list comes from `Read(...)` deny rules and sandbox settings |
+| Write | Only the working directory and temporary directory | With `.claude/settings.json`, hooks, skills and similar carved out, so the agent can't edit its own configuration to grant itself more |
 
-## 配置
+## Settings
 
-`settings.json` 的 `sandbox` 段：
+The `sandbox` section of `settings.json`:
 
 ```json
 {
@@ -49,24 +49,24 @@ Claude Code 用开源的 `@anthropic-ai/sandbox-runtime`（命令行 `srt`）把
 }
 ```
 
-| 键 | 作用 |
+| Key | Effect |
 | --- | --- |
-| `enabled` | 打开沙箱；交互式里也可以用 `/sandbox` |
-| `autoAllowBashIfSandboxed` | 沙箱内的 Bash 命令不再弹权限确认 |
-| `allowUnsandboxedCommands` | 是否允许模型通过 Bash 工具的 `dangerouslyDisableSandbox` 参数请求在沙箱外重跑；设为 `false` 彻底关掉这条路 |
-| `excludedCommands` | 这些命令在沙箱外运行，回到普通权限审批 |
-| `network.allowedDomains` | 出网白名单 |
-| `network.allowUnixSockets` | 允许连接的 Unix socket，例如 `docker.sock`；放开等于给出宿主控制权 |
-| `filesystem.allowWrite` / `denyWrite` | 增减可写路径 |
+| `enabled` | Turns the sandbox on; interactively, `/sandbox` too |
+| `autoAllowBashIfSandboxed` | Sandboxed Bash commands no longer prompt for permission |
+| `allowUnsandboxedCommands` | Whether the model may ask, via the Bash tool's `dangerouslyDisableSandbox` parameter, to rerun a command outside; `false` closes that door |
+| `excludedCommands` | Run outside the sandbox and go back through normal permission checks |
+| `network.allowedDomains` | The egress allowlist |
+| `network.allowUnixSockets` | Unix sockets that may be reached, e.g. `docker.sock`; allowing one hands over control of the host |
+| `filesystem.allowWrite` / `denyWrite` | Add or remove writable paths |
 
-配置名以[官方文档](https://docs.claude.com/en/docs/claude-code/sandboxing)为准，版本迭代较快。
+Key names follow the [official docs](https://docs.claude.com/en/docs/claude-code/sandboxing) as of 2026-11; they change between versions.
 
-## 和权限系统的关系
+## Relation to permissions
 
-沙箱只包 Bash 工具。Read、Edit、WebFetch、MCP 工具仍走权限规则。见[两道闸](permissions-vs-sandbox.md)。
+Only the Bash tool is sandboxed. Read, Edit, WebFetch and MCP tools still go through permission rules. See [two gates](permissions-vs-sandbox.md).
 
-## 相关
+## Related
 
-- [Codex 的沙箱](codex.md)
-- [对比](claude-code-vs-codex.md)
-- [解读一个正在运行的沙箱](lab-inspecting-a-live-sandbox.md)
+- [Codex's sandbox](codex.md)
+- [Comparison](claude-code-vs-codex.md)
+- [Inspecting a live sandbox](lab-inspecting-a-live-sandbox.md)

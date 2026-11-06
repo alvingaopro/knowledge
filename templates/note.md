@@ -1,6 +1,6 @@
 ---
-title: 概念名
-description: 一句话说明这条笔记回答什么问题
+title: Concept name
+description: One sentence on the question this note answers
 type: explanation
 tags: []
 created: YYYY-MM-DD
@@ -8,14 +8,14 @@ updated: YYYY-MM-DD
 sources: []
 ---
 
-一两句话的结论：读者只看这里也能带走最重要的东西。
+The conclusion in one or two sentences: a reader who stops here still takes away the most important thing.
 
-## 是什么
+## What it is
 
-## 为什么需要它
+## Why it's needed
 
-## 怎么工作
+## How it works
 
-## 相关
+## Related
 
-- [相关概念](../path/to/note.md)
+- [Related concept](../path/to/note.md)
