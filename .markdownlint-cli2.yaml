@@ -1,0 +1,15 @@
+config:
+  default: true
+  MD013: false        # 中文不按行宽折行
+  MD024:
+    siblings_only: true
+  MD025:
+    front_matter_title: "^\\s*title\\s*[:=]"
+  MD033: false        # 允许少量 HTML
+  MD041: false        # H1 来自 front matter
+  MD046:
+    style: fenced
+ignores:
+  - "site/**"
+  - ".venv/**"
+  - "node_modules/**"

@@ -1,0 +1,75 @@
+site_name: Knowledge
+site_description: 一条笔记一个概念的技术知识库
+site_url: https://alvingaopro.github.io/knowledge/
+repo_url: https://github.com/alvingaopro/knowledge
+repo_name: alvingaopro/knowledge
+edit_uri: edit/main/docs/
+docs_dir: docs
+
+# 导航不手写：由目录结构生成，各目录的 index.md 作为入口页。
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/weather-night
+        name: 切换到深色
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: 切换到浅色
+
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+  - tags
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
